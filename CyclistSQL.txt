@@ -1,0 +1,171 @@
+Cyclist SQL Query (Ran on BiqQuery)
+
+--Join Q4 data and June(5a,b) into one table
+select *
+from `kelechis-first-project.bike_data.Bike share 01`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 02`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 03`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 04`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05a`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05b`;
+
+--Use unioned table in CTE to calculate total no. of casual users/ members
+--count of casual/members
+WITH new_bike
+AS (
+select *
+from `kelechis-first-project.bike_data.Bike share 01`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 02`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 03`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 04`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05a`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05b`
+)
+select member_casual, count(member_casual)
+from new_bike
+where member_casual is not null
+group by member_casual
+order by member_casual desc;
+
+--Calculate Average and Max Ride length(in seconds) grouped by user type
+WITH new_bike
+AS (
+select *
+from `kelechis-first-project.bike_data.Bike share 01`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 02`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 03`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 04`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05a`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05b`
+)
+select 
+   member_casual, 
+   avg((EXTRACT(HOUR FROM ride_length) * 3600) + (EXTRACT(MINUTE FROM ride_length) * 60) + EXTRACT(SECOND FROM ride_length)) AS average_ridelength_seconds, 
+   max((EXTRACT(HOUR FROM ride_length) * 3600) + (EXTRACT(MINUTE FROM ride_length) * 60) + EXTRACT(SECOND FROM ride_length)) as max_ridelength_seconds -- converts ride_length from HH:MM:SS to seconds and calculates average and max ride_length
+from new_bike
+where member_casual is not null
+group by member_casual
+order by average_ridelength_seconds desc;
+
+--Count of users and average_ridelength by day of the week and user type
+WITH new_bike
+AS (
+select *
+from `kelechis-first-project.bike_data.Bike share 01`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 02`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 03`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 04`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05a`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05b`
+)
+select week_day,member_casual, count(member_casual) as user_count, avg((EXTRACT(HOUR FROM ride_length) * 3600) + (EXTRACT(MINUTE FROM ride_length) * 60) + EXTRACT(SECOND FROM ride_length)) AS average_ridelength_seconds
+from new_bike
+where member_casual is not null
+group by week_day, member_casual
+order by user_count desc;
+
+--user and bike type vs biketype_count
+WITH new_bike
+AS (
+select *
+from `kelechis-first-project.bike_data.Bike share 01`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 02`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 03`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 04`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05a`
+union all
+select *
+from `kelechis-first-project.bike_data.Bike share 05b`
+)
+select member_casual, bike_type, count(bike_type) as biketype_count
+from new_bike
+where member_casual is not null
+group by member_casual,bike_type
+order by biketype_count desc;
+
+--percentage of biketype_count per user type(casual/member)
+WITH new_bike AS (
+  SELECT *
+  FROM `kelechis-first-project.bike_data.Bike share 01`
+  UNION ALL
+  SELECT *
+  FROM `kelechis-first-project.bike_data.Bike share 02`
+  UNION ALL
+  SELECT *
+  FROM `kelechis-first-project.bike_data.Bike share 03`
+  UNION ALL
+  SELECT *
+  FROM `kelechis-first-project.bike_data.Bike share 04`
+  UNION ALL
+  SELECT *
+  FROM `kelechis-first-project.bike_data.Bike share 05a`
+  UNION ALL
+  SELECT *
+  FROM `kelechis-first-project.bike_data.Bike share 05b`
+)
+--below query is a subquery that selects the 'biketype_count' derived from the main query
+SELECT
+  member_casual,
+  bike_type,
+  biketype_count,
+  (biketype_count / SUM(biketype_count) OVER (PARTITION BY member_casual)) * 100 AS percentage_of_biketype_count --calculate percentage per user type (casual/member)
+FROM (
+  SELECT
+    member_casual,
+    bike_type,
+    COUNT(bike_type) AS biketype_count
+  FROM new_bike
+  WHERE member_casual IS NOT NULL
+  GROUP BY member_casual, bike_type
+)
+ORDER BY member_casual, biketype_count DESC;
+
+
